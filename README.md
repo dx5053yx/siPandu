@@ -2,46 +2,39 @@
 
 MVP demo chatbot WhatsApp UMKM: Next.js + Firebase + Gemini + OpenClaw.
 
+## Fokus demo
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+siPandu dibuat untuk membuktikan alur inti:
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyAC9qpU9GnzisMbuijuJdFZaddXEZ5Ijgo",
-  authDomain: "sipandu-45.firebaseapp.com",
-  projectId: "sipandu-45",
-  storageBucket: "sipandu-45.firebasestorage.app",
-  messagingSenderId: "642616332039",
-  appId: "1:642616332039:web:33968f391a5a82973f7fa2",
-  measurementId: "G-YSY5EZ97DL"
-};
+1. pelanggan chat lewat WhatsApp atau simulator;
+2. bot menjawab berdasarkan produk dan FAQ UMKM;
+3. bot mendeteksi pesanan;
+4. pesanan disimpan ke Firestore;
+5. dashboard UMKM menampilkan produk, pesanan, dan insight.
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+## Stack
 
+- Next.js untuk frontend dan backend API.
+- Firebase Firestore untuk database.
+- Firebase Auth untuk login UMKM.
+- Gemini API untuk balasan natural berbasis data.
+- OpenClaw sebagai adapter WhatsApp demo.
 
-rules_version = '2';
+## Firebase
 
-service cloud.firestore {
-  match /databases/{database}/documents {
+Konfigurasi Firebase client disimpan melalui environment variable, bukan hardcode di source.
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2026, 6, 19);
-    }
-  }
-}
+Lihat `.env.example` untuk daftar variable yang perlu diisi.
+
+Rules Firestore utama ada di `firestore.rules`.
+
+## Endpoint awal
+
+- `GET /api/health`
+- `POST /api/bot`
+- `POST /api/openclaw`
+
+## Catatan keamanan
+
+Jangan commit API key rahasia, service account JSON, atau private key ke repository.
+Firebase web config boleh dipakai di frontend, tetapi tetap lebih rapi jika dikelola lewat `.env.local`.
