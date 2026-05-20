@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsUmkm(umkmId) {
+      return signedIn() && get(/databases/$(database)/documents/umkms/$(umkmId)).data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, update: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /umkms/{umkmId} {
+      allow read, write: if ownsUmkm(umkmId);
+
+      match /products/{productId} {
+        allow read, write: if ownsUmkm(umkmId);
+      }
+
+      match /faqs/{faqId} {
+        allow read, write: if ownsUmkm(umkmId);
+      }
+
+      match /orders/{orderId} {
+        allow read, update, delete: if ownsUmkm(umkmId);
+        allow create: if true;
+
+        match /items/{itemId} {
+          allow read, write: if ownsUmkm(umkmId);
+          allow create: if true;
+        }
+      }
+
+      match /conversations/{conversationId} {
+        allow read, update, delete: if ownsUmkm(umkmId);
+        allow create: if true;
+
+        match /messages/{messageId} {
+          allow read, write: if ownsUmkm(umkmId);
+          allow create: if true;
+        }
+      }
+
+      match /analytics/{analyticsId} {
+        allow read, write: if ownsUmkm(umkmId);
+      }
+    }
+  }
+}
