@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+dist
+.env*.local
+.env
+.firebase
+.vercel
+.DS_Store
