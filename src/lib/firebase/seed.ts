@@ -6,8 +6,10 @@
  * Requires: .env.local with Firebase Admin credentials
  */
 
-import type { Merchant } from '@/types/merchant';
-import type { Product } from '@/types/product';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminDb } from './admin';
+import type { Merchant } from '../../types/merchant';
+import type { Product } from '../../types/product';
 
 /* ── Demo Merchant: Warung Mendoan Bu Sari ── */
 export const DEMO_MERCHANT_ID = 'demo_warung_mendoan';
@@ -66,3 +68,67 @@ export const demoProducts: Omit<Product, 'createdAt' | 'updatedAt'>[] = [
     isActive: true,
   },
 ];
+
+export async function seedDemoData() {
+  const db = getAdminDb();
+  const now = FieldValue.serverTimestamp();
+  const merchantRef = db.collection('merchants').doc(DEMO_MERCHANT_ID);
+
+  await merchantRef.set(
+    {
+      ...demoMerchant,
+      createdAt: now,
+      updatedAt: now,
+    },
+    { merge: true }
+  );
+
+  const batch = db.batch();
+
+  for (const product of demoProducts) {
+    batch.set(
+      merchantRef.collection('products').doc(product.id),
+      {
+        ...product,
+        createdAt: now,
+        updatedAt: now,
+      },
+      { merge: true }
+    );
+  }
+
+  const today = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+  batch.set(
+    db.collection('analyticsDaily').doc(`${DEMO_MERCHANT_ID}_${today}`),
+    {
+      id: `${DEMO_MERCHANT_ID}_${today}`,
+      merchantId: DEMO_MERCHANT_ID,
+      date: today,
+      totalChats: 0,
+      totalOrders: 0,
+      topAskedProducts: [],
+      topOrderedProducts: [],
+      createdAt: now,
+      updatedAt: now,
+    },
+    { merge: true }
+  );
+
+  await batch.commit();
+
+  return {
+    merchantId: DEMO_MERCHANT_ID,
+    products: demoProducts.length,
+  };
+}
+
+if (process.argv[1]?.endsWith('seed.ts') || process.argv[1]?.endsWith('seed.js')) {
+  seedDemoData()
+    .then((result) => {
+      console.log(`Seed selesai: ${result.merchantId} dengan ${result.products} produk.`);
+    })
+    .catch((error) => {
+      console.error('Seed gagal:', error);
+      process.exitCode = 1;
+    });
+}

@@ -1,40 +1,14 @@
 import { MessageSquare, User } from 'lucide-react';
-
-const demoChats = [
-  {
-    id: 'chat_001',
-    customerName: 'Budi',
-    customerPhone: '628123456789',
-    channel: 'whatsapp',
-    lastMessage: 'Pesan 10 mendoan sama 2 es teh',
-    lastIntent: 'pesan',
-    status: 'handled' as const,
-    messages: [
-      { sender: 'customer', text: 'Halo, mendoan ready?', time: '10:28' },
-      { sender: 'bot', text: 'Halo Kak, mendoan ready ya. Harganya Rp2.000/pcs. Mau pesan berapa?', time: '10:28' },
-      { sender: 'customer', text: 'Pesan 10 mendoan sama 2 es teh', time: '10:29' },
-      { sender: 'bot', text: 'Siap Kak! 10 Mendoan + 2 Es Teh. Total Rp28.000. Pickup atau antar?', time: '10:29' },
-    ],
-  },
-  {
-    id: 'chat_002',
-    customerName: 'Ani',
-    customerPhone: '628987654321',
-    channel: 'mock',
-    lastMessage: 'Bakwan masih ada?',
-    lastIntent: 'tanya_produk',
-    status: 'open' as const,
-    messages: [
-      { sender: 'customer', text: 'Bakwan masih ada?', time: '11:10' },
-      { sender: 'bot', text: 'Bakwan tinggal sedikit. Harganya Rp1.500. Mau pesan?', time: '11:10' },
-    ],
-  },
-];
+import { getDashboardChats } from '@/lib/dashboard/data';
 
 const statusBadge = { open: 'badge-success', handled: 'badge-neutral', needs_human: 'badge-danger' };
 const statusLabel = { open: 'Aktif', handled: 'Selesai', needs_human: 'Butuh Admin' };
 
-export default function ChatsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function ChatsPage() {
+  const chats = await getDashboardChats(undefined, true);
+
   return (
     <>
       <div className="dash-page-header">
@@ -42,7 +16,7 @@ export default function ChatsPage() {
         <p>Percakapan pelanggan dan respons bot siPandu.</p>
       </div>
       <div style={{ display: 'grid', gap: '1rem' }}>
-        {demoChats.map((chat) => (
+        {chats.map((chat) => (
           <div className="card" key={chat.id}>
             <div className="card-body">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -64,14 +38,34 @@ export default function ChatsPage() {
               <div style={{ background: '#f5fbf7', borderRadius: 12, padding: '1rem', display: 'grid', gap: '0.5rem' }}>
                 {chat.messages.map((msg, i) => (
                   <div key={i} className={`bubble ${msg.sender === 'customer' ? 'bubble-user' : 'bubble-bot'}`} style={{ maxWidth: '80%' }}>
-                    <div className="bubble-label">{msg.sender === 'customer' ? chat.customerName : 'Bot'} {msg.time}</div>
+                    <div className="bubble-label">
+                      {msg.sender === 'customer' ? chat.customerName ?? 'Pelanggan' : 'Bot'}{' '}
+                      {msg.createdAt
+                        ? new Date(msg.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                        : ''}
+                    </div>
                     <div style={{ whiteSpace: 'pre-line' }}>{msg.text}</div>
                   </div>
                 ))}
+                {chat.messages.length === 0 && (
+                  <div className="bubble bubble-user" style={{ maxWidth: '80%' }}>
+                    <div className="bubble-label">{chat.customerName ?? 'Pelanggan'}</div>
+                    <div style={{ whiteSpace: 'pre-line' }}>{chat.lastMessage}</div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         ))}
+        {chats.length === 0 && (
+          <div className="card">
+            <div className="empty-state">
+              <MessageSquare />
+              <h3>Belum ada chat</h3>
+              <p>Riwayat percakapan dari simulator atau webhook akan muncul di sini.</p>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

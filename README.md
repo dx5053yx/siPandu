@@ -55,7 +55,17 @@ npm run dev
 
 Buka [http://localhost:3000](http://localhost:3000).
 
-### 4. Test mock chat
+### 4. Isi demo data Firestore (opsional)
+
+Jika Firebase Admin sudah dikonfigurasi, jalankan seed untuk membuat merchant dan produk demo:
+
+```bash
+npm run seed
+```
+
+Dashboard akan membaca data Firestore jika tersedia. Jika Firebase belum siap, dashboard dan chatbot tetap memakai data demo lokal.
+
+### 5. Test mock chat
 
 ```bash
 curl -X POST http://localhost:3000/api/mock/inbound \
@@ -65,6 +75,13 @@ curl -X POST http://localhost:3000/api/mock/inbound \
     "customerPhone": "628123456789",
     "message": "Halo, mendoan ready?"
   }'
+```
+
+### 6. Jalankan test dan build
+
+```bash
+npm test
+npm run build
 ```
 
 ## Struktur Folder
@@ -82,13 +99,15 @@ src/
 │   │   ├── products/page.tsx       # Kelola produk
 │   │   ├── orders/page.tsx         # Pesanan
 │   │   ├── chats/page.tsx          # Riwayat chat
-│   │   └── analytics/page.tsx      # Analisis
+│   │   ├── analytics/page.tsx      # Analisis
+│   │   └── whatsapp/page.tsx       # Koneksi WhatsApp/OpenClaw
 │   └── api/
 │       ├── health/route.ts         # Health check
 │       ├── chat/inbound/route.ts   # Webhook chat masuk
 │       ├── chat/reply/route.ts     # Kirim balasan
 │       ├── gemini/respond/route.ts # Generate AI response
 │       ├── mock/inbound/route.ts   # Simulasi chat
+│       ├── openclaw/wa/qr/route.ts # Status/QR WhatsApp OpenClaw
 │       └── openclaw/webhook/route.ts # OpenClaw bridge
 ├── lib/
 │   ├── firebase/                   # Firebase client & admin
@@ -111,10 +130,13 @@ src/
 | POST | `/api/gemini/respond` | Generate AI response |
 | POST | `/api/mock/inbound` | Simulasi chat tanpa WhatsApp |
 | POST | `/api/openclaw/webhook` | OpenClaw automation bridge |
+| GET | `/api/openclaw/wa/qr` | Ambil QR WhatsApp dari OpenClaw gateway |
 
 ## Demo Data
 
 Merchant demo: **Warung Mendoan Bu Sari** (`demo_warung_mendoan`)
+
+Nomor WhatsApp demo: **08997595299** (`628997595299`)
 
 | Produk | Harga | Stok |
 |---|---|---|
@@ -130,11 +152,21 @@ Bot siPandu bisa:
 - Mendeteksi intent (tanya_produk, pesan, komplain, lokasi, jam_buka)
 - Mengekstrak pesanan dari chat
 - Menandai chat yang butuh admin (`needsHuman`)
+- Menyimpan status chat `needs_human` agar dashboard dan OpenClaw bisa follow-up
 - Fallback ke rule-based jika Gemini tidak tersedia
 
 ## Catatan Keamanan
 
 - Jangan commit `.env.local` atau API key ke repository
+- Jangan commit file service account Firebase (`*-firebase-adminsdk-*.json`)
 - Gemini API key hanya dipanggil server-side
 - Webhook dilindungi secret verification
 - Data antar UMKM diisolasi per `merchantId`
+
+## Hubungkan WhatsApp via OpenClaw
+
+1. Jalankan OpenClaw gateway.
+2. Isi `.env.local`: `OPENCLAW_GATEWAY_URL=http://localhost:18789`, `OPENCLAW_WEBHOOK_SECRET`, `CHAT_WEBHOOK_SECRET`, `WHATSAPP_PROVIDER=openclaw`, `WHATSAPP_PHONE_NUMBER=628997595299`, `OPENCLAW_WA_SESSION_ID=default`, dan `OPENCLAW_CLI_PATH`.
+3. Buka `/dashboard/whatsapp`.
+4. Jika belum linked, scan QR dari halaman tersebut. Jika sudah linked, halaman akan menampilkan status connected.
+5. Untuk bridge otomatis, aktifkan plugin lokal `sipandu-forwarder` di OpenClaw. Plugin memakai hook `before_dispatch`, meneruskan pesan ke `${NEXT_PUBLIC_APP_URL}/api/chat/inbound` dengan header `x-sipandu-signature`, lalu OpenClaw mengirim teks balasan ke WhatsApp.

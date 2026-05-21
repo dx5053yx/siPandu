@@ -1,44 +1,6 @@
 import { ShoppingCart, Clock } from 'lucide-react';
 import { rupiah } from '@/lib/utils';
-
-const demoOrders = [
-  {
-    id: 'ord_001',
-    customerName: 'Budi',
-    customerPhone: '628123456789',
-    items: [
-      { name: 'Mendoan', qty: 10, price: 2000 },
-      { name: 'Es Teh', qty: 2, price: 4000 },
-    ],
-    totalEstimated: 28000,
-    status: 'confirmed' as const,
-    deliveryMethod: 'pickup' as const,
-    createdAt: '2026-05-21T10:30:00',
-  },
-  {
-    id: 'ord_002',
-    customerName: 'Ani',
-    customerPhone: '628987654321',
-    items: [
-      { name: 'Bakwan', qty: 5, price: 1500 },
-      { name: 'Es Teh', qty: 1, price: 4000 },
-    ],
-    totalEstimated: 11500,
-    status: 'draft' as const,
-    deliveryMethod: 'delivery' as const,
-    createdAt: '2026-05-21T11:15:00',
-  },
-  {
-    id: 'ord_003',
-    customerName: 'Citra',
-    customerPhone: '628111222333',
-    items: [{ name: 'Mendoan', qty: 3, price: 2000 }],
-    totalEstimated: 6000,
-    status: 'done' as const,
-    deliveryMethod: 'pickup' as const,
-    createdAt: '2026-05-21T09:00:00',
-  },
-];
+import { getDashboardOrders } from '@/lib/dashboard/data';
 
 const statusMap = {
   draft: { label: 'Draft', class: 'badge-neutral' },
@@ -48,7 +10,11 @@ const statusMap = {
   cancelled: { label: 'Dibatalkan', class: 'badge-danger' },
 };
 
-export default function OrdersPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function OrdersPage() {
+  const orders = await getDashboardOrders();
+
   return (
     <>
       <div className="dash-page-header">
@@ -60,19 +26,19 @@ export default function OrdersPage() {
       <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
         <div className="card stat-card">
           <div className="stat-label">Total Pesanan</div>
-          <div className="stat-value">{demoOrders.length}</div>
+          <div className="stat-value">{orders.length}</div>
         </div>
         <div className="card stat-card">
           <div className="stat-label">Estimasi Omzet</div>
-          <div className="stat-value">{rupiah(demoOrders.reduce((s, o) => s + o.totalEstimated, 0))}</div>
+          <div className="stat-value">{rupiah(orders.reduce((s, o) => s + o.totalEstimated, 0))}</div>
         </div>
         <div className="card stat-card">
           <div className="stat-label">Draft</div>
-          <div className="stat-value">{demoOrders.filter((o) => o.status === 'draft').length}</div>
+          <div className="stat-value">{orders.filter((o) => o.status === 'draft').length}</div>
         </div>
         <div className="card stat-card">
           <div className="stat-label">Selesai</div>
-          <div className="stat-value">{demoOrders.filter((o) => o.status === 'done').length}</div>
+          <div className="stat-value">{orders.filter((o) => o.status === 'done').length}</div>
         </div>
       </div>
 
@@ -91,7 +57,7 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {demoOrders.map((order) => (
+              {orders.map((order) => (
                 <tr key={order.id}>
                   <td>
                     <strong style={{ fontWeight: 700 }}>{order.customerName}</strong>
@@ -118,13 +84,22 @@ export default function OrdersPage() {
                   <td style={{ fontSize: '0.85rem', color: '#5a7e6a' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                       <Clock size={14} />
-                      {new Date(order.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                      {order.createdAt
+                        ? new Date(order.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                        : '—'}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {orders.length === 0 && (
+            <div className="empty-state">
+              <ShoppingCart />
+              <h3>Belum ada pesanan</h3>
+              <p>Pesanan dari chat pelanggan akan muncul di sini.</p>
+            </div>
+          )}
         </div>
       </div>
     </>

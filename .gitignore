@@ -4,6 +4,8 @@ out
 dist
 .env*.local
 .env
+*-firebase-adminsdk-*.json
+serviceAccount*.json
 .firebase
 .vercel
 .DS_Store

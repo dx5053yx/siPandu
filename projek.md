@@ -122,7 +122,7 @@ NODE_ENV=development
 
 # Gemini
 GEMINI_API_KEY=isi_dari_google_ai_studio
-GEMINI_MODEL=gemini-3.5-flash
+GEMINI_MODEL=gemini-2.0-flash
 
 # Firebase Client
 NEXT_PUBLIC_FIREBASE_API_KEY=isi_dari_firebase_txt
@@ -140,15 +140,18 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 
 # Chat / WhatsApp Gateway
 CHAT_WEBHOOK_SECRET=buat_secret_random_min_32_char
-WHATSAPP_PROVIDER=mock
+WHATSAPP_PROVIDER=openclaw
+WHATSAPP_PHONE_NUMBER=628997595299
 WHATSAPP_ACCESS_TOKEN=optional_untuk_produksi
 WHATSAPP_PHONE_NUMBER_ID=optional_untuk_produksi
 
 # OpenClaw
-OPENCLAW_GATEWAY_URL=http://localhost:7331
+OPENCLAW_GATEWAY_URL=http://localhost:18789
 OPENCLAW_WEBHOOK_SECRET=buat_secret_random_min_32_char
 OPENCLAW_ROUTE_PATH=/plugins/webhooks/sipandu
 OPENCLAW_SESSION_KEY=agent:sipandu:main
+OPENCLAW_WA_SESSION_ID=default
+OPENCLAW_CLI_PATH=/home/akiru/.local/share/npm-global/bin/openclaw
 ```
 
 ---
@@ -924,11 +927,12 @@ Estimasi: 1 hari
 
 Checklist:
 
-- [ ] Buat `src/lib/openclaw/client.ts`.
-- [ ] Implement `/api/openclaw/webhook`.
-- [ ] Implement function `triggerOpenClawEvent()`.
-- [ ] Konfigurasikan OpenClaw route `/plugins/webhooks/sipandu`.
-- [ ] Test event `needs_human_followup`.
+- [x] Buat `src/lib/openclaw/client.ts`.
+- [x] Implement `/api/openclaw/webhook`.
+- [x] Implement function `triggerOpenClawEvent()`.
+- [x] Tambahkan status/QR WhatsApp OpenClaw di `/dashboard/whatsapp`.
+- [x] Tambahkan plugin lokal `sipandu-forwarder` untuk bridge WhatsApp masuk.
+- [x] Test status WhatsApp connected dan inbound respond-only.
 
 Deliverable:
 
@@ -1103,15 +1107,14 @@ Aturan penting:
 Project siap diserahkan jika folder project memiliki:
 
 - [ ] Source code Next.js lengkap.
-- [ ] `.env.example` lengkap.
+- [x] `.env.example` lengkap.
 - [ ] Firebase client/admin setup.
 - [ ] Gemini client setup.
-- [ ] OpenClaw bridge setup.
+- [x] OpenClaw bridge setup.
 - [ ] Firestore data model diterapkan.
 - [ ] Dashboard berfungsi.
-- [ ] Mock chat end-to-end berfungsi.
-- [ ] README instalasi.
-- [ ] Seed data demo.
+- [x] Mock chat end-to-end berfungsi.
+- [x] README instalasi.
+- [x] Seed data demo.
 - [ ] Test minimal untuk chat processor.
 - [ ] Tidak ada secret asli di repository.
-

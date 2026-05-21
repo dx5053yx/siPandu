@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   MessageSquare,
   BarChart3,
+  QrCode,
   LogOut,
   Sparkles,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ const navItems = [
   { href: '/dashboard/products', icon: Package, label: 'Produk' },
   { href: '/dashboard/orders', icon: ShoppingCart, label: 'Pesanan' },
   { href: '/dashboard/chats', icon: MessageSquare, label: 'Chat' },
+  { href: '/dashboard/whatsapp', icon: QrCode, label: 'Hubungkan WA' },
   { href: '/dashboard/analytics', icon: BarChart3, label: 'Analisis' },
 ];
 

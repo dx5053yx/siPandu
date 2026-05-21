@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 /* ── CSS Custom Properties ── */
 :root {
@@ -345,7 +345,7 @@ body {
 
 /* ── Badges ── */
 .badge {
-  display: inline-flex; align-items: center;
+  display: inline-flex; align-items: center; gap: 0.35rem;
   padding: 0.25rem 0.75rem; border-radius: 999px;
   font-size: 0.75rem; font-weight: 700;
 }
@@ -438,6 +438,90 @@ body {
 .empty-state svg { width: 64px; height: 64px; margin-bottom: 1rem; opacity: 0.3; }
 .empty-state h3 { font-weight: 800; color: var(--surface-950); margin-bottom: 0.5rem; }
 
+/* ── WhatsApp Connection ── */
+.wa-connect-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+.wa-qr-panel { display: grid; gap: 1.25rem; }
+.wa-panel-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 1rem;
+}
+.wa-panel-header h2 {
+  font-size: 1.25rem; font-weight: 900; margin-top: 0.75rem;
+}
+.wa-qr-box {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  border: 1px solid var(--surface-200);
+  border-radius: var(--radius);
+  background: var(--surface-50);
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+.wa-qr-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  background: white;
+}
+.wa-qr-placeholder {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: #5a7e6a;
+  gap: 0.5rem;
+}
+.wa-qr-placeholder svg { color: #16a34a; opacity: 0.5; }
+.wa-qr-placeholder strong { color: var(--surface-950); font-size: 1rem; }
+.wa-qr-placeholder span { font-size: 0.85rem; max-width: 260px; }
+.wa-number-card {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--surface-200);
+  border-radius: var(--radius);
+  background: var(--surface-50);
+}
+.wa-number-card svg { color: var(--brand-600); }
+.wa-number-card div { display: grid; gap: 0.1rem; }
+.wa-number-card strong { font-size: 1rem; }
+.wa-number-card span { color: #5a7e6a; font-size: 0.8rem; }
+.wa-config-title {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 1rem; font-weight: 900; margin-bottom: 1rem;
+}
+.wa-config-title svg { color: var(--brand-600); }
+.config-list { display: grid; gap: 0.75rem; }
+.config-list div { display: grid; gap: 0.25rem; }
+.config-list span {
+  color: #5a7e6a; font-size: 0.78rem;
+  font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.config-list code,
+.code-block {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--surface-100);
+  border: 1px solid var(--surface-200);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  color: var(--surface-950);
+  font-size: 0.8rem;
+}
+.code-block { line-height: 1.55; margin: 0; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ── Loading ── */
 .loading-dots { display: flex; gap: 4px; align-items: center; }
 .loading-dots span {
@@ -463,6 +547,7 @@ body {
   .dash-layout { grid-template-columns: 1fr; }
   .dash-sidebar { display: none; }
   .chat-container { grid-template-columns: 1fr; }
+  .wa-connect-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {

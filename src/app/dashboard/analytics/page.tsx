@@ -1,21 +1,24 @@
 import { BarChart3, MessageSquare, ShoppingCart, TrendingUp } from 'lucide-react';
+import {
+  getDashboardChats,
+  getDashboardOrders,
+  getDashboardProducts,
+  rankAskedProducts,
+  rankOrderedProducts,
+} from '@/lib/dashboard/data';
 
-const demoAnalytics = {
-  totalChats: 74,
-  totalOrders: 18,
-  topAsked: [
-    { name: 'Mendoan', count: 32 },
-    { name: 'Es Teh', count: 19 },
-    { name: 'Bakwan', count: 12 },
-  ],
-  topOrdered: [
-    { name: 'Mendoan', count: 15 },
-    { name: 'Es Teh', count: 8 },
-    { name: 'Bakwan', count: 4 },
-  ],
-};
+export const dynamic = 'force-dynamic';
 
-export default function AnalyticsPage() {
+export default async function AnalyticsPage() {
+  const [products, orders, chats] = await Promise.all([
+    getDashboardProducts(),
+    getDashboardOrders(),
+    getDashboardChats(undefined, true),
+  ]);
+  const topAsked = rankAskedProducts(products, chats);
+  const topOrdered = rankOrderedProducts(orders);
+  const conversionRate = chats.length > 0 ? Math.round((orders.length / chats.length) * 100) : 0;
+
   return (
     <>
       <div className="dash-page-header">
@@ -28,7 +31,7 @@ export default function AnalyticsPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div className="stat-label">Total Chat</div>
-              <div className="stat-value">{demoAnalytics.totalChats}</div>
+              <div className="stat-value">{chats.length}</div>
             </div>
             <MessageSquare size={24} style={{ color: '#3b82f6' }} />
           </div>
@@ -37,7 +40,7 @@ export default function AnalyticsPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div className="stat-label">Total Pesanan</div>
-              <div className="stat-value">{demoAnalytics.totalOrders}</div>
+              <div className="stat-value">{orders.length}</div>
             </div>
             <ShoppingCart size={24} style={{ color: '#16a34a' }} />
           </div>
@@ -46,7 +49,7 @@ export default function AnalyticsPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div className="stat-label">Rasio Konversi</div>
-              <div className="stat-value">{Math.round((demoAnalytics.totalOrders / demoAnalytics.totalChats) * 100)}%</div>
+              <div className="stat-value">{conversionRate}%</div>
             </div>
             <TrendingUp size={24} style={{ color: '#8b5cf6' }} />
           </div>
@@ -55,7 +58,7 @@ export default function AnalyticsPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div className="stat-label">Produk Terlaris</div>
-              <div className="stat-value">{demoAnalytics.topOrdered[0]?.name}</div>
+              <div className="stat-value">{topOrdered[0]?.name ?? '—'}</div>
             </div>
             <BarChart3 size={24} style={{ color: '#f59e0b' }} />
           </div>
@@ -69,8 +72,8 @@ export default function AnalyticsPage() {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>
               Produk Paling Sering Ditanya
             </h2>
-            {demoAnalytics.topAsked.map((item, i) => {
-              const maxCount = demoAnalytics.topAsked[0].count;
+            {topAsked.map((item, i) => {
+              const maxCount = topAsked[0].count;
               const pct = (item.count / maxCount) * 100;
               return (
                 <div key={item.name} style={{ marginBottom: '0.75rem' }}>
@@ -84,6 +87,13 @@ export default function AnalyticsPage() {
                 </div>
               );
             })}
+            {topAsked.length === 0 && (
+              <div className="empty-state" style={{ padding: '2rem 1rem' }}>
+                <MessageSquare />
+                <h3>Belum ada pertanyaan produk</h3>
+                <p>Data akan terisi dari riwayat chat pelanggan.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -93,8 +103,8 @@ export default function AnalyticsPage() {
             <h2 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>
               Produk Paling Sering Dipesan
             </h2>
-            {demoAnalytics.topOrdered.map((item, i) => {
-              const maxCount = demoAnalytics.topOrdered[0].count;
+            {topOrdered.map((item, i) => {
+              const maxCount = topOrdered[0].count;
               const pct = (item.count / maxCount) * 100;
               return (
                 <div key={item.name} style={{ marginBottom: '0.75rem' }}>
@@ -108,6 +118,13 @@ export default function AnalyticsPage() {
                 </div>
               );
             })}
+            {topOrdered.length === 0 && (
+              <div className="empty-state" style={{ padding: '2rem 1rem' }}>
+                <ShoppingCart />
+                <h3>Belum ada produk dipesan</h3>
+                <p>Produk akan muncul setelah order draft tercatat.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

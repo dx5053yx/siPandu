@@ -22,6 +22,14 @@ export const geminiRespondSchema = z.object({
 
 export type GeminiRespondInput = z.infer<typeof geminiRespondSchema>;
 
+/* ── Chat Reply ── */
+export const chatReplySchema = z.object({
+  to: z.string().min(1, 'to wajib diisi'),
+  message: z.string().min(1, 'message wajib diisi'),
+});
+
+export type ChatReplyInput = z.infer<typeof chatReplySchema>;
+
 /* ── OpenClaw Webhook ── */
 export const openclawWebhookSchema = z.object({
   type: z.enum(['needs_human_followup', 'daily_report', 'run_task']),
@@ -56,7 +64,7 @@ export const geminiOutputSchema = z.object({
       name: z.string(),
       qty: z.number().int().positive(),
       note: z.string().optional(),
-    })),
+    })).min(1),
     deliveryMethod: z.enum(['pickup', 'delivery', 'unknown']),
     address: z.string().optional(),
     note: z.string().optional(),

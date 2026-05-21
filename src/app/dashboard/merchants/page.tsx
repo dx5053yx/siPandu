@@ -1,8 +1,10 @@
 import { Store, MapPin, Phone, Clock } from 'lucide-react';
-import { demoMerchant } from '@/lib/firebase/seed';
+import { getDashboardMerchant } from '@/lib/dashboard/data';
 
-export default function MerchantsPage() {
-  const merchant = demoMerchant;
+export const dynamic = 'force-dynamic';
+
+export default async function MerchantsPage() {
+  const merchant = await getDashboardMerchant();
 
   return (
     <>

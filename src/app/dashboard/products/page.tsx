@@ -1,8 +1,12 @@
-import { demoProducts } from '@/lib/firebase/seed';
+import { getDashboardProducts } from '@/lib/dashboard/data';
 import { rupiah } from '@/lib/utils';
 import { Package } from 'lucide-react';
 
-export default function ProductsPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function ProductsPage() {
+  const products = await getDashboardProducts();
+
   return (
     <>
       <div className="dash-page-header">
@@ -32,7 +36,7 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {demoProducts.map((product) => (
+              {products.map((product) => (
                 <tr key={product.id}>
                   <td>
                     <div>
@@ -75,6 +79,13 @@ export default function ProductsPage() {
               ))}
             </tbody>
           </table>
+          {products.length === 0 && (
+            <div className="empty-state">
+              <Package />
+              <h3>Belum ada produk</h3>
+              <p>Tambahkan produk pertama agar bot bisa menjawab katalog UMKM.</p>
+            </div>
+          )}
         </div>
       </div>
     </>

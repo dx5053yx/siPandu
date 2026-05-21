@@ -1,5 +1,5 @@
 import { callGemini, isGeminiAvailable } from '@/lib/gemini/client';
-import { buildFullPrompt, FALLBACK_RESPONSE } from '@/lib/chat/prompts';
+import { buildFullPrompt } from '@/lib/chat/prompts';
 import { geminiOutputSchema, type GeminiOutput } from '@/lib/validators';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { demoMerchant, demoProducts, DEMO_MERCHANT_ID } from '@/lib/firebase/seed';
@@ -58,7 +58,7 @@ async function getMerchantData(merchantId: string) {
  * Rule-based fallback when Gemini is not available.
  * Provides basic intent detection and response using product data.
  */
-function ruleBasedResponse(
+export function ruleBasedResponse(
   message: string,
   merchant: Pick<Merchant, 'name' | 'address' | 'openingHours'>,
   products: Pick<Product, 'name' | 'price' | 'stockStatus' | 'description'>[]
@@ -113,10 +113,12 @@ function ruleBasedResponse(
   const matchedProducts: { name: string; qty: number }[] = [];
 
   for (const product of products) {
-    if (text.includes(product.name.toLowerCase())) {
+    const productName = product.name.toLowerCase();
+    if (text.includes(productName)) {
       // Try to extract quantity
-      const qtyPattern = new RegExp(`(\\d+)\\s*(?:x|pcs|porsi|buah|gelas)?\\s*${product.name.toLowerCase()}`);
-      const reversePattern = new RegExp(`${product.name.toLowerCase()}\\s*(\\d+)`);
+      const escapedProductName = productName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const qtyPattern = new RegExp(`(\\d+)\\s*(?:x|pcs|porsi|buah|gelas)?\\s*${escapedProductName}`);
+      const reversePattern = new RegExp(`${escapedProductName}\\s*(\\d+)`);
       const match = text.match(qtyPattern) || text.match(reversePattern);
       const qty = match?.[1] ? parseInt(match[1]) : 1;
       matchedProducts.push({ name: product.name, qty });
@@ -151,10 +153,11 @@ function ruleBasedResponse(
   for (const product of products) {
     if (text.includes(product.name.toLowerCase())) {
       const status = product.stockStatus === 'ready' ? 'ready' : product.stockStatus === 'limited' ? 'tinggal sedikit' : 'habis';
+      const followUp = product.stockStatus === 'empty' ? 'Bisa pilih produk lain di menu ya.' : 'Mau pesan berapa?';
       return {
         intent: 'tanya_produk',
-        reply: `${product.name} ${status} ya, Kak. Harganya ${rupiah(product.price)}. Mau pesan berapa?`,
-        needsHuman: false,
+        reply: `${product.name} ${status} ya, Kak. Harganya ${rupiah(product.price)}. ${followUp}`,
+        needsHuman: product.stockStatus === 'empty',
         orderDraft: null,
       };
     }
@@ -181,6 +184,7 @@ async function saveChatToFirestore(input: {
   inboundText: string;
   outboundText: string;
   intent: string;
+  needsHuman: boolean;
 }) {
   let chatId = 'local_' + Date.now();
   let messageId = 'msg_' + Date.now();
@@ -188,12 +192,13 @@ async function saveChatToFirestore(input: {
   try {
     const db = getAdminDb();
     const now = FieldValue.serverTimestamp();
+    const chatStatus = input.needsHuman ? 'needs_human' : 'open';
 
     // Find or create chat
     const chatsRef = db.collection('merchants').doc(input.merchantId).collection('chats');
     const existingChat = await chatsRef
       .where('customerPhone', '==', input.customerPhone)
-      .where('status', 'in', ['open', 'handled'])
+      .where('status', 'in', ['open', 'handled', 'needs_human'])
       .limit(1)
       .get();
 
@@ -202,6 +207,7 @@ async function saveChatToFirestore(input: {
       await chatsRef.doc(chatId).update({
         lastMessage: input.inboundText,
         lastIntent: input.intent,
+        status: chatStatus,
         updatedAt: now,
       });
     } else {
@@ -212,7 +218,7 @@ async function saveChatToFirestore(input: {
         channel: input.channel,
         lastMessage: input.inboundText,
         lastIntent: input.intent,
-        status: 'open',
+        status: chatStatus,
         createdAt: now,
         updatedAt: now,
       });
@@ -259,7 +265,7 @@ async function saveOrderToFirestore(input: {
   customerName: string;
   orderDraft: NonNullable<GeminiOutput['orderDraft']>;
   sourceMessageId: string;
-  products: Pick<Product, 'name' | 'price'>[];
+  products: Pick<Product, 'id' | 'name' | 'price'>[];
 }) {
   try {
     const db = getAdminDb();
@@ -268,6 +274,7 @@ async function saveOrderToFirestore(input: {
     const items = input.orderDraft.items.map((item) => {
       const prod = input.products.find((p) => p.name.toLowerCase() === item.name.toLowerCase());
       return {
+        productId: prod?.id,
         name: item.name,
         qty: item.qty,
         price: prod?.price,
@@ -348,6 +355,7 @@ export async function processIncomingChat(input: {
     inboundText: input.message,
     outboundText: aiResult.reply,
     intent: aiResult.intent,
+    needsHuman: aiResult.needsHuman,
   });
 
   // Save order if exists

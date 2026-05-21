@@ -4,21 +4,39 @@ import {
   AlertCircle,
   Package,
 } from 'lucide-react';
-import { demoMerchant, demoProducts } from '@/lib/firebase/seed';
 import { rupiah } from '@/lib/utils';
+import {
+  getDashboardChats,
+  getDashboardMerchant,
+  getDashboardOrders,
+  getDashboardProducts,
+  rankAskedProducts,
+} from '@/lib/dashboard/data';
 
-export default function DashboardOverview() {
+export const dynamic = 'force-dynamic';
+
+export default async function DashboardOverview() {
+  const [merchant, products, orders, chats] = await Promise.all([
+    getDashboardMerchant(),
+    getDashboardProducts(),
+    getDashboardOrders(),
+    getDashboardChats(),
+  ]);
+  const activeProducts = products.filter((product) => product.isActive);
+  const needsHumanChats = chats.filter((chat) => chat.status === 'needs_human').length;
+  const topAskedProduct = rankAskedProducts(products, chats)[0]?.name ?? '—';
+
   const stats = [
-    { label: 'Chat hari ini', value: '—', icon: MessageSquare, color: '#3b82f6' },
-    { label: 'Total pesanan', value: '—', icon: ShoppingCart, color: '#16a34a' },
-    { label: 'Butuh admin', value: '—', icon: AlertCircle, color: '#f59e0b' },
-    { label: 'Produk aktif', value: String(demoProducts.length), icon: Package, color: '#8b5cf6' },
+    { label: 'Total chat', value: String(chats.length), icon: MessageSquare, color: '#3b82f6' },
+    { label: 'Total pesanan', value: String(orders.length), icon: ShoppingCart, color: '#16a34a' },
+    { label: 'Butuh admin', value: String(needsHumanChats), icon: AlertCircle, color: '#f59e0b' },
+    { label: 'Produk aktif', value: String(activeProducts.length), icon: Package, color: '#8b5cf6' },
   ];
 
   return (
     <>
       <div className="dash-page-header">
-        <h1>{demoMerchant.name}</h1>
+        <h1>{merchant.name}</h1>
         <p>Pantau chat pelanggan, pesanan, produk, dan insight penjualan UMKM kamu.</p>
       </div>
 
@@ -66,7 +84,7 @@ export default function DashboardOverview() {
               </tr>
             </thead>
             <tbody>
-              {demoProducts.map((product) => (
+              {activeProducts.map((product) => (
                 <tr key={product.id}>
                   <td style={{ fontWeight: 700 }}>{product.name}</td>
                   <td>{rupiah(product.price)}</td>
@@ -100,19 +118,19 @@ export default function DashboardOverview() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
             <div>
               <strong style={{ color: '#5a7e6a', fontSize: '0.8rem' }}>Kategori</strong>
-              <p style={{ fontWeight: 600, textTransform: 'capitalize' }}>{demoMerchant.category}</p>
+              <p style={{ fontWeight: 600, textTransform: 'capitalize' }}>{merchant.category}</p>
             </div>
             <div>
               <strong style={{ color: '#5a7e6a', fontSize: '0.8rem' }}>Jam Buka</strong>
-              <p style={{ fontWeight: 600 }}>{demoMerchant.openingHours}</p>
+              <p style={{ fontWeight: 600 }}>{merchant.openingHours}</p>
             </div>
             <div>
               <strong style={{ color: '#5a7e6a', fontSize: '0.8rem' }}>Alamat</strong>
-              <p style={{ fontWeight: 600 }}>{demoMerchant.address}</p>
+              <p style={{ fontWeight: 600 }}>{merchant.address}</p>
             </div>
             <div>
-              <strong style={{ color: '#5a7e6a', fontSize: '0.8rem' }}>AI Tone</strong>
-              <p style={{ fontWeight: 600, textTransform: 'capitalize' }}>{demoMerchant.aiTone}</p>
+              <strong style={{ color: '#5a7e6a', fontSize: '0.8rem' }}>Produk Paling Ditanya</strong>
+              <p style={{ fontWeight: 600 }}>{topAskedProduct}</p>
             </div>
           </div>
         </div>

@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { chatInboundSchema } from '@/lib/validators';
 import { processIncomingChat } from '@/lib/chat/processor';
+import { sendChatReply } from '@/lib/chat/reply';
 import { triggerOpenClawEvent } from '@/lib/openclaw/client';
+
+export const runtime = 'nodejs';
 
 /**
  * POST /api/chat/inbound
@@ -9,6 +12,8 @@ import { triggerOpenClawEvent } from '@/lib/openclaw/client';
  * Protected by x-sipandu-signature header.
  */
 export async function POST(request: Request) {
+  const respondOnly = request.headers.get('x-sipandu-respond-only') === 'true';
+
   // 1. Verify webhook secret
   const expectedSecret = process.env.CHAT_WEBHOOK_SECRET;
   if (expectedSecret && expectedSecret !== 'buat_secret_random_min_32_char') {
@@ -64,6 +69,14 @@ export async function POST(request: Request) {
       }).catch((err) => console.warn('OpenClaw trigger failed:', err));
     }
 
+    const delivery = input.channel === 'mock' || respondOnly
+      ? null
+      : await sendChatReply({
+          to: input.customerPhone,
+          message: result.reply,
+          provider: process.env.WHATSAPP_PROVIDER || input.channel,
+        });
+
     return NextResponse.json({
       ok: true,
       reply: result.reply,
@@ -71,6 +84,7 @@ export async function POST(request: Request) {
       needsHuman: result.needsHuman,
       orderDraft: result.orderDraft,
       chatId: result.chatId,
+      delivery,
     });
   } catch (error) {
     console.error('Chat processing error:', error);
