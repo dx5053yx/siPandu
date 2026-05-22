@@ -1,9 +1,8 @@
 import { callGemini, isGeminiAvailable } from '@/lib/gemini/client';
 import { buildFullPrompt } from '@/lib/chat/prompts';
 import { geminiOutputSchema, type GeminiOutput } from '@/lib/validators';
-import { getAdminDb } from '@/lib/firebase/admin';
-import { demoMerchant, demoProducts, DEMO_MERCHANT_ID } from '@/lib/firebase/seed';
-import { FieldValue } from 'firebase-admin/firestore';
+import { demoMerchant, demoProducts, DEMO_MERCHANT_ID } from '@/lib/demo/data';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { rupiah } from '@/lib/utils';
 import type { Merchant } from '@/types/merchant';
 import type { Product } from '@/types/product';
@@ -17,27 +16,93 @@ export type ProcessResult = {
   messageId: string;
 };
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+}
+
+function mapMerchantRow(row: unknown): Merchant {
+  const data = asRecord(row);
+  return {
+    id: String(data.id ?? DEMO_MERCHANT_ID),
+    name: String(data.name ?? ''),
+    slug: String(data.slug ?? ''),
+    category:
+      data.category === 'fashion' || data.category === 'jasa' || data.category === 'lainnya'
+        ? data.category
+        : 'kuliner',
+    description: String(data.description ?? ''),
+    ownerName: String(data.owner_name ?? data.ownerName ?? ''),
+    phone: String(data.phone ?? ''),
+    whatsappNumber: String(data.whatsapp_number ?? data.whatsappNumber ?? ''),
+    address: String(data.address ?? ''),
+    city: String(data.city ?? 'Purbalingga'),
+    openingHours: String(data.opening_hours ?? data.openingHours ?? ''),
+    isPremium: data.is_premium === true || data.isPremium === true,
+    status: data.status === 'draft' || data.status === 'suspended' ? data.status : 'active',
+    aiTone:
+      data.ai_tone === 'formal' || data.aiTone === 'formal'
+        ? 'formal'
+        : data.ai_tone === 'santai' || data.aiTone === 'santai'
+          ? 'santai'
+          : 'ramah',
+    fallbackMessage: String(data.fallback_message ?? data.fallbackMessage ?? ''),
+    createdAt: String(data.created_at ?? data.createdAt ?? ''),
+    updatedAt: String(data.updated_at ?? data.updatedAt ?? ''),
+  };
+}
+
+function mapProductRow(row: unknown): Product {
+  const data = asRecord(row);
+  return {
+    id: String(data.id ?? ''),
+    merchantId: String(data.merchant_id ?? data.merchantId ?? DEMO_MERCHANT_ID),
+    name: String(data.name ?? ''),
+    description: String(data.description ?? ''),
+    price: Number(data.price ?? 0),
+    stockStatus:
+      data.stock_status === 'limited' || data.stockStatus === 'limited'
+        ? 'limited'
+        : data.stock_status === 'empty' || data.stockStatus === 'empty'
+          ? 'empty'
+          : 'ready',
+    category: String(data.category ?? 'umum'),
+    imageUrl: typeof data.image_url === 'string' ? data.image_url : typeof data.imageUrl === 'string' ? data.imageUrl : undefined,
+    keywords: Array.isArray(data.keywords) ? data.keywords.map(String) : [],
+    isActive: data.is_active !== false && data.isActive !== false,
+    createdAt: String(data.created_at ?? data.createdAt ?? ''),
+    updatedAt: String(data.updated_at ?? data.updatedAt ?? ''),
+  };
+}
+
 /**
- * Get merchant data from Firestore or fallback to demo data.
+ * Get merchant data from Supabase or fallback to demo data.
  */
 async function getMerchantData(merchantId: string) {
   try {
-    const db = getAdminDb();
-    const merchantDoc = await db.collection('merchants').doc(merchantId).get();
+    const supabase = getSupabaseServerClient();
+    const { data: merchantRow, error: merchantError } = await supabase
+      .from('merchants')
+      .select('*')
+      .eq('id', merchantId)
+      .maybeSingle();
 
-    if (merchantDoc.exists) {
-      const merchant = { id: merchantDoc.id, ...merchantDoc.data() } as Merchant;
-      const productsSnap = await db
-        .collection('merchants')
-        .doc(merchantId)
-        .collection('products')
-        .where('isActive', '==', true)
-        .get();
-      const products = productsSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as Product[];
+    if (merchantError) throw merchantError;
+
+    if (merchantRow) {
+      const { data: productRows, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('merchant_id', merchantId)
+        .eq('is_active', true);
+
+      if (productsError) throw productsError;
+
+      const merchant = mapMerchantRow(merchantRow);
+      const products = (productRows ?? []).map(mapProductRow);
       return { merchant, products };
     }
   } catch {
-    // Firestore not available, fall through to demo data
+    // Supabase not available, fall through to demo data.
   }
 
   // Fallback to demo data if merchantId matches or as default
@@ -173,10 +238,10 @@ export function ruleBasedResponse(
 }
 
 /**
- * Save chat messages to Firestore.
+ * Save chat messages to Supabase.
  * Returns chatId and messageId.
  */
-async function saveChatToFirestore(input: {
+async function saveChatToSupabase(input: {
   merchantId: string;
   customerPhone: string;
   customerName: string;
@@ -190,75 +255,97 @@ async function saveChatToFirestore(input: {
   let messageId = 'msg_' + Date.now();
 
   try {
-    const db = getAdminDb();
-    const now = FieldValue.serverTimestamp();
+    const supabase = getSupabaseServerClient();
+    const now = new Date().toISOString();
     const chatStatus = input.needsHuman ? 'needs_human' : 'open';
 
     // Find or create chat
-    const chatsRef = db.collection('merchants').doc(input.merchantId).collection('chats');
-    const existingChat = await chatsRef
-      .where('customerPhone', '==', input.customerPhone)
-      .where('status', 'in', ['open', 'handled', 'needs_human'])
-      .limit(1)
-      .get();
+    const { data: existingChats, error: existingError } = await supabase
+      .from('chats')
+      .select('id')
+      .eq('merchant_id', input.merchantId)
+      .eq('customer_phone', input.customerPhone)
+      .in('status', ['open', 'handled', 'needs_human'])
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
-    if (!existingChat.empty) {
-      chatId = existingChat.docs[0].id;
-      await chatsRef.doc(chatId).update({
-        lastMessage: input.inboundText,
-        lastIntent: input.intent,
-        status: chatStatus,
-        updatedAt: now,
-      });
+    if (existingError) throw existingError;
+
+    if (existingChats?.[0]) {
+      chatId = existingChats[0].id;
+      const { error: updateError } = await supabase
+        .from('chats')
+        .update({
+          last_message: input.inboundText,
+          last_intent: input.intent,
+          status: chatStatus,
+          updated_at: now,
+        })
+        .eq('id', chatId);
+
+      if (updateError) throw updateError;
     } else {
-      const newChat = await chatsRef.add({
-        merchantId: input.merchantId,
-        customerPhone: input.customerPhone,
-        customerName: input.customerName,
-        channel: input.channel,
-        lastMessage: input.inboundText,
-        lastIntent: input.intent,
-        status: chatStatus,
-        createdAt: now,
-        updatedAt: now,
-      });
+      const { data: newChat, error: insertError } = await supabase
+        .from('chats')
+        .insert({
+          merchant_id: input.merchantId,
+          customer_phone: input.customerPhone,
+          customer_name: input.customerName,
+          channel: input.channel,
+          last_message: input.inboundText,
+          last_intent: input.intent,
+          status: chatStatus,
+          created_at: now,
+          updated_at: now,
+        })
+        .select('id')
+        .single();
+
+      if (insertError) throw insertError;
       chatId = newChat.id;
     }
 
     // Save inbound message
-    const messagesRef = chatsRef.doc(chatId).collection('messages');
-    const inboundMsg = await messagesRef.add({
-      merchantId: input.merchantId,
-      chatId,
-      direction: 'inbound',
-      sender: 'customer',
-      text: input.inboundText,
-      intent: input.intent,
-      createdAt: now,
-    });
+    const { data: inboundMsg, error: inboundError } = await supabase
+      .from('messages')
+      .insert({
+        merchant_id: input.merchantId,
+        chat_id: chatId,
+        direction: 'inbound',
+        sender: 'customer',
+        text: input.inboundText,
+        intent: input.intent,
+        created_at: now,
+      })
+      .select('id')
+      .single();
+
+    if (inboundError) throw inboundError;
     messageId = inboundMsg.id;
 
     // Save outbound message
-    await messagesRef.add({
-      merchantId: input.merchantId,
-      chatId,
+    const { error: outboundError } = await supabase.from('messages').insert({
+      merchant_id: input.merchantId,
+      chat_id: chatId,
       direction: 'outbound',
       sender: 'bot',
       text: input.outboundText,
       intent: input.intent,
-      createdAt: now,
+      created_at: now,
     });
+
+    if (outboundError) throw outboundError;
   } catch {
-    // Firestore not available, continue with local IDs
+    // Supabase not available, continue with local IDs.
   }
 
   return { chatId, messageId };
 }
 
 /**
- * Save order draft to Firestore.
+ * Save order draft to Supabase.
  */
-async function saveOrderToFirestore(input: {
+async function saveOrderToSupabase(input: {
   merchantId: string;
   chatId: string;
   customerPhone: string;
@@ -268,13 +355,13 @@ async function saveOrderToFirestore(input: {
   products: Pick<Product, 'id' | 'name' | 'price'>[];
 }) {
   try {
-    const db = getAdminDb();
-    const now = FieldValue.serverTimestamp();
+    const supabase = getSupabaseServerClient();
+    const now = new Date().toISOString();
 
     const items = input.orderDraft.items.map((item) => {
       const prod = input.products.find((p) => p.name.toLowerCase() === item.name.toLowerCase());
       return {
-        productId: prod?.id,
+        product_id: prod?.id,
         name: item.name,
         qty: item.qty,
         price: prod?.price,
@@ -284,31 +371,33 @@ async function saveOrderToFirestore(input: {
 
     const totalEstimated = items.reduce((sum, item) => sum + (item.price ?? 0) * item.qty, 0);
 
-    await db.collection('merchants').doc(input.merchantId).collection('orders').add({
-      merchantId: input.merchantId,
-      chatId: input.chatId,
-      customerPhone: input.customerPhone,
-      customerName: input.customerName,
+    const { error } = await supabase.from('orders').insert({
+      merchant_id: input.merchantId,
+      chat_id: input.chatId,
+      customer_phone: input.customerPhone,
+      customer_name: input.customerName,
       items,
-      totalEstimated,
-      deliveryMethod: input.orderDraft.deliveryMethod || 'unknown',
+      total_estimated: totalEstimated,
+      delivery_method: input.orderDraft.deliveryMethod || 'unknown',
       address: input.orderDraft.address,
       note: input.orderDraft.note,
       status: 'draft',
-      sourceMessageId: input.sourceMessageId,
-      createdAt: now,
-      updatedAt: now,
+      source_message_id: input.sourceMessageId,
+      created_at: now,
+      updated_at: now,
     });
+
+    if (error) throw error;
   } catch {
-    // Firestore not available
+    // Supabase not available.
   }
 }
 
 /**
  * Main function: Process incoming chat message.
- * 1. Get merchant + products from Firestore (or demo data)
+ * 1. Get merchant + products from Supabase (or demo data)
  * 2. Generate AI response via Gemini (or rule-based fallback)
- * 3. Save chat and order to Firestore
+ * 3. Save chat and order to Supabase
  * 4. Return result
  */
 export async function processIncomingChat(input: {
@@ -346,8 +435,8 @@ export async function processIncomingChat(input: {
     aiResult = ruleBasedResponse(input.message, merchant, products);
   }
 
-  // Save to Firestore
-  const { chatId, messageId } = await saveChatToFirestore({
+  // Save to Supabase
+  const { chatId, messageId } = await saveChatToSupabase({
     merchantId: input.merchantId,
     customerPhone: input.customerPhone,
     customerName: input.customerName,
@@ -360,7 +449,7 @@ export async function processIncomingChat(input: {
 
   // Save order if exists
   if (aiResult.orderDraft) {
-    await saveOrderToFirestore({
+    await saveOrderToSupabase({
       merchantId: input.merchantId,
       chatId,
       customerPhone: input.customerPhone,

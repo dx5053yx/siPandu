@@ -7,4 +7,4 @@ Target demo:
 3. Data produk dan FAQ.
 4. Webhook WhatsApp dari OpenClaw.
 5. Gemini untuk balasan natural.
-6. Firestore untuk order dan chat log.
+6. Supabase untuk order dan chat log.

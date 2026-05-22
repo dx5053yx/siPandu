@@ -1,6 +1,6 @@
 # siPandu
 
-Platform chatbot AI untuk UMKM lokal di Purbalingga. Dibangun dengan Next.js, Firebase, Gemini API, dan OpenClaw.
+Platform chatbot AI untuk UMKM lokal di Purbalingga. Dibangun dengan Next.js, Supabase, Gemini API, dan OpenClaw.
 
 ## Fokus Demo
 
@@ -19,8 +19,8 @@ siPandu membuktikan alur inti:
 | Frontend & Backend | Next.js App Router + TypeScript |
 | Styling | Tailwind CSS |
 | AI | Gemini API via `@google/genai` |
-| Database | Firebase Cloud Firestore |
-| Auth | Firebase Authentication |
+| Database | Supabase Postgres |
+| Auth | Supabase Auth |
 | Automation | OpenClaw Webhooks |
 | Validation | Zod |
 
@@ -42,9 +42,9 @@ cp .env.example .env.local
 
 Variable yang wajib diisi:
 
-- `NEXT_PUBLIC_FIREBASE_API_KEY` — dari Firebase Console
-- `NEXT_PUBLIC_FIREBASE_APP_ID` — dari Firebase Console
-- `FIREBASE_PRIVATE_KEY` — dari service account JSON
+- `NEXT_PUBLIC_SUPABASE_URL` — dari Supabase Project Settings
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — dari Supabase Project Settings
+- `SUPABASE_SERVICE_ROLE_KEY` — opsional untuk write server yang lebih aman di produksi
 - `GEMINI_API_KEY` — dari Google AI Studio
 
 ### 3. Jalankan dev server
@@ -55,15 +55,15 @@ npm run dev
 
 Buka [http://localhost:3000](http://localhost:3000).
 
-### 4. Isi demo data Firestore (opsional)
+### 4. Setup Supabase dan seed data
 
-Jika Firebase Admin sudah dikonfigurasi, jalankan seed untuk membuat merchant dan produk demo:
+Jalankan isi [`supabase/schema.sql`](supabase/schema.sql) di Supabase SQL Editor, lalu isi demo merchant dan produk:
 
 ```bash
 npm run seed
 ```
 
-Dashboard akan membaca data Firestore jika tersedia. Jika Firebase belum siap, dashboard dan chatbot tetap memakai data demo lokal.
+Dashboard akan membaca data Supabase jika tersedia. Jika Supabase belum siap, dashboard dan chatbot tetap memakai data demo lokal.
 
 ### 5. Test mock chat
 
@@ -98,7 +98,7 @@ Untuk deploy, lihat [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 src/
 ├── app/
 │   ├── page.tsx                    # Landing page
-│   ├── login/page.tsx              # Login Firebase Auth
+│   ├── login/page.tsx              # Login Supabase Auth
 │   ├── simulator/page.tsx          # Chat simulator interaktif
 │   ├── dashboard/
 │   │   ├── layout.tsx              # Dashboard layout + sidebar
@@ -118,7 +118,8 @@ src/
 │       ├── openclaw/wa/qr/route.ts # Status/QR WhatsApp OpenClaw
 │       └── openclaw/webhook/route.ts # OpenClaw bridge
 ├── lib/
-│   ├── firebase/                   # Firebase client & admin
+│   ├── supabase/                   # Supabase client, server, dan seed
+│   ├── demo/                       # Data demo lokal
 │   ├── gemini/                     # Gemini API client
 │   ├── chat/                       # Chat processor & prompts
 │   ├── openclaw/                   # OpenClaw client
@@ -166,7 +167,7 @@ Bot siPandu bisa:
 ## Catatan Keamanan
 
 - Jangan commit `.env.local` atau API key ke repository
-- Jangan commit file service account Firebase (`*-firebase-adminsdk-*.json`)
+- Jangan commit service role key Supabase ke repository
 - Gemini API key hanya dipanggil server-side
 - Webhook dilindungi secret verification
 - Data antar UMKM diisolasi per `merchantId`

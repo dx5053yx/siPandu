@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from './timestamp';
 
 export type OrderStatus = 'draft' | 'confirmed' | 'processing' | 'done' | 'cancelled';
 export type DeliveryMethod = 'pickup' | 'delivery' | 'unknown';

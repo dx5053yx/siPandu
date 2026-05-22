@@ -12,33 +12,32 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "deploy:check": "npm test && npm run build",
-    "seed": "tsx src/lib/firebase/seed.ts"
+    "seed": "tsx src/lib/supabase/seed.ts"
   },
   "dependencies": {
+    "@google/genai": "^1.0.0",
+    "@supabase/supabase-js": "^2.106.1",
+    "clsx": "^2.1.0",
+    "lucide-react": "^0.468.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "firebase": "^11.0.0",
-    "firebase-admin": "^13.0.0",
-    "@google/genai": "^1.0.0",
-    "zod": "^3.23.0",
-    "uuid": "^10.0.0",
-    "clsx": "^2.1.0",
     "tailwind-merge": "^2.5.0",
-    "lucide-react": "^0.468.0"
+    "uuid": "^10.0.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
-    "tsx": "^4.22.3",
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0",
-    "eslint": "^9.0.0",
-    "eslint-config-next": "^15.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/uuid": "^10.0.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.0.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "tsx": "^4.22.3",
+    "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { openclawWebhookSchema } from '@/lib/validators';
-import { getAdminDb } from '@/lib/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 /**
  * POST /api/openclaw/webhook
@@ -46,16 +45,24 @@ export async function POST(request: Request) {
 
   const event = parsed.data;
 
-  // 3. Save event to Firestore
+  // 3. Save event to Supabase
   try {
-    const db = getAdminDb();
-    await db.collection('openclawEvents').add({
-      ...event,
-      receivedAt: FieldValue.serverTimestamp(),
+    const supabase = getSupabaseServerClient();
+    await supabase.from('openclaw_events').insert({
+      type: event.type,
+      merchant_id: event.merchantId,
+      chat_id: event.chatId ?? null,
+      customer_phone: event.customerPhone ?? null,
+      summary: event.summary ?? null,
+      priority: event.priority ?? null,
+      date: event.date ?? null,
+      action: event.action ?? null,
+      payload: event,
       processed: false,
+      received_at: new Date().toISOString(),
     });
   } catch (err) {
-    console.warn('Failed to save OpenClaw event to Firestore:', err);
+    console.warn('Failed to save OpenClaw event to Supabase:', err);
   }
 
   // 4. Handle event types

@@ -141,7 +141,7 @@ export default function HomePage() {
                   <Shield size={24} />
                 </div>
                 <h3>Aman & Terpercaya</h3>
-                <p>Data tersimpan di Firebase, dilindungi autentikasi, dan tidak ada data yang bocor antar UMKM.</p>
+                <p>Data tersimpan di Supabase, dilindungi autentikasi, dan disiapkan terpisah per UMKM.</p>
               </div>
             </div>
           </div>

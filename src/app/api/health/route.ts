@@ -16,14 +16,13 @@ export async function GET() {
     },
     checks: {
       appUrl: isFilled(process.env.NEXT_PUBLIC_APP_URL),
-      firebaseClientEnv:
-        isFilled(process.env.NEXT_PUBLIC_FIREBASE_API_KEY) &&
-        isFilled(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) &&
-        isFilled(process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
-      firebaseAdminEnv:
-        isFilled(process.env.FIREBASE_PROJECT_ID) &&
-        isFilled(process.env.FIREBASE_CLIENT_EMAIL) &&
-        isFilled(process.env.FIREBASE_PRIVATE_KEY),
+      supabaseClientEnv:
+        isFilled(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+        isFilled(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
+      supabaseServerEnv:
+        isFilled(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+        (isFilled(process.env.SUPABASE_SERVICE_ROLE_KEY) ||
+          isFilled(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)),
       gemini: isFilled(process.env.GEMINI_API_KEY),
       chatWebhookSecret: isFilled(process.env.CHAT_WEBHOOK_SECRET),
       openClawWebhookSecret: isFilled(process.env.OPENCLAW_WEBHOOK_SECRET),

@@ -1,21 +1,20 @@
 # Database Schema
 
-Firestore memakai struktur multi-tenant berbasis `merchantId`.
+Database utama siPandu sekarang memakai Supabase Postgres. Skema SQL lengkap ada di [`supabase/schema.sql`](../supabase/schema.sql).
 
-## Collections
+## Tables
 
-- `users/{userId}`
-- `merchants/{merchantId}`
-- `merchants/{merchantId}/products/{productId}`
-- `merchants/{merchantId}/chats/{chatId}`
-- `merchants/{merchantId}/chats/{chatId}/messages/{messageId}`
-- `merchants/{merchantId}/orders/{orderId}`
-- `analyticsDaily/{merchantId_yyyyMMdd}`
-- `openclawEvents/{eventId}`
+- `merchants` - profil UMKM, nomor WhatsApp, tone AI, dan status toko.
+- `products` - katalog produk per `merchant_id`.
+- `chats` - ringkasan percakapan pelanggan per UMKM.
+- `messages` - riwayat pesan inbound/outbound per chat.
+- `orders` - draft pesanan hasil ekstraksi chat.
+- `analytics_daily` - metrik harian awal untuk dashboard.
+- `openclaw_events` - event automation dari OpenClaw.
 
 ## Catatan
 
-- Produk, chat, message, dan order disimpan sebagai subcollection merchant agar data antar UMKM tidak tercampur.
-- Route server memakai Firebase Admin SDK untuk menulis chat, order, dan event OpenClaw.
-- Client dashboard membaca data melalui server component dengan fallback data demo jika Firebase belum dikonfigurasi.
-- `openclawEvents` hanya boleh ditulis oleh server, bukan langsung oleh client.
+- Semua tabel membawa `merchant_id` agar data tiap UMKM tetap bisa difilter jelas.
+- Route server menulis chat, order, seed, dan event OpenClaw lewat Supabase.
+- Dashboard membaca Supabase lebih dulu, lalu fallback ke data demo lokal jika tabel belum siap.
+- Skema MVP mematikan RLS agar bisa berjalan dengan publishable key. Untuk produksi publik, isi `SUPABASE_SERVICE_ROLE_KEY` di server dan ganti dengan policy RLS yang lebih ketat.

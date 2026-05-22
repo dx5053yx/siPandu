@@ -1,6 +1,6 @@
 # Deployment
 
-Target paling sederhana untuk siPandu saat ini adalah Vercel untuk aplikasi Next.js, Firebase untuk Auth/Firestore, dan OpenClaw tetap berjalan di mesin yang memegang sesi WhatsApp.
+Target paling sederhana untuk siPandu saat ini adalah Vercel untuk aplikasi Next.js, Supabase untuk Auth/Postgres, dan OpenClaw tetap berjalan di mesin yang memegang sesi WhatsApp.
 
 ## Data UMKM Awal
 
@@ -12,20 +12,32 @@ Nama: Warung Mendoan Bu Sari
 WhatsApp UMKM: 628997595299
 ```
 
-Seed data:
+## Setup Supabase
+
+1. Buka Supabase project.
+2. Masuk ke SQL Editor.
+3. Jalankan isi file [`supabase/schema.sql`](../supabase/schema.sql).
+4. Pastikan environment variable Supabase sudah diisi.
+5. Jalankan seed data:
 
 ```bash
 npm run seed
 ```
 
-Seed hanya membuat merchant `demo_warung_mendoan`, produk demo, dan dokumen analytics harian awal.
+Seed membuat merchant `demo_warung_mendoan`, produk demo, dan analytics harian awal.
 
 ## Cek Sebelum Deploy
 
 ```bash
-npm install --legacy-peer-deps
+npm install
 npm test
 npm run build
+```
+
+Atau satu perintah:
+
+```bash
+npm run deploy:check
 ```
 
 Build harus sukses sebelum deploy.
@@ -88,3 +100,7 @@ curl -X POST https://your-sipandu-domain.vercel.app/api/mock/inbound \
   -H "Content-Type: application/json" \
   -d '{"message":"menu"}'
 ```
+
+## Catatan Keamanan
+
+Project sekarang bisa jalan dengan publishable key karena skema MVP mematikan RLS. Sebelum benar-benar dibuka publik, ambil `service_role` key dari Supabase Project Settings > API, isi `SUPABASE_SERVICE_ROLE_KEY` di Vercel, lalu aktifkan RLS policies yang sesuai.

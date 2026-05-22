@@ -1,6 +1,6 @@
 # PROJECT PLAN — siPandu
 
-**Target serah-terima:** Dokumen ini disiapkan untuk agen developer lain agar dapat langsung membangun MVP siPandu menggunakan **Next.js**, **Gemini API**, **OpenClaw**, dan **Firebase**.
+**Target serah-terima:** Dokumen ini disiapkan untuk agen developer lain agar dapat langsung membangun MVP siPandu menggunakan **Next.js**, **Gemini API**, **OpenClaw**, dan **Supabase**.
 
 **Nama proyek:** siPandu  
 **Jenis:** Platform chatbot AI untuk UMKM lokal  
@@ -28,7 +28,7 @@ siPandu adalah platform chatbot AI untuk membantu UMKM Purbalingga menjawab chat
 1. Chatbot otomatis berbasis AI untuk menjawab pertanyaan produk, harga, stok, dan jam operasional.
 2. Ekstraksi pesanan dari chat pelanggan.
 3. Dashboard UMKM untuk mengelola profil toko, katalog produk, pesanan, dan riwayat chat.
-4. Firebase sebagai database, auth, storage, dan deployment/backend supporting service.
+4. Supabase sebagai database, auth, storage, dan deployment/backend supporting service.
 5. OpenClaw sebagai jalur agent automation/taskflow melalui webhook aman.
 6. Gemini API sebagai model AI untuk respons natural dan ekstraksi data.
 
@@ -49,7 +49,7 @@ siPandu adalah platform chatbot AI untuk membantu UMKM Purbalingga menjawab chat
   - ekstraksi pesanan,
   - klasifikasi intent pesan,
   - ringkasan percakapan.
-- Penyimpanan chat dan pesanan ke Firestore.
+- Penyimpanan chat dan pesanan ke Supabase.
 - Endpoint outbound response untuk mengirim balasan ke channel/gateway.
 - Integrasi OpenClaw webhook untuk menjalankan taskflow/agent automation.
 - Halaman analisis sederhana:
@@ -86,14 +86,14 @@ OpenClaw tidak diposisikan sebagai pengganti WhatsApp provider. OpenClaw digunak
 | Frontend & Backend | Next.js App Router + TypeScript | Website, dashboard, API route handlers |
 | Styling | Tailwind CSS + shadcn/ui | UI cepat, rapi, dan konsisten |
 | AI | Gemini API via `@google/genai` | Auto-reply, intent detection, ekstraksi order |
-| Database | Firebase Cloud Firestore | Data UMKM, produk, chat, order, analytics |
-| Auth | Firebase Authentication | Login admin/UMKM |
-| Storage | Firebase Storage | Logo toko, foto produk |
-| Admin SDK | Firebase Admin SDK | Server-side access Firestore/Auth |
+| Database | Supabase Postgres | Data UMKM, produk, chat, order, analytics |
+| Auth | Supabase Auth | Login admin/UMKM |
+| Storage | Supabase Storage | Logo toko, foto produk |
+| Server Client | `@supabase/supabase-js` | Server-side access Supabase/Auth |
 | Automation | OpenClaw Webhooks Plugin | Agent workflow, follow-up task, monitoring |
 | Validation | Zod | Validasi input API |
 | Testing | Vitest | Unit test service logic |
-| Deployment | Vercel/Firebase App Hosting | Deploy Next.js |
+| Deployment | Vercel | Deploy Next.js |
 
 ---
 
@@ -101,8 +101,8 @@ OpenClaw tidak diposisikan sebagai pengganti WhatsApp provider. OpenClaw digunak
 
 1. **Next.js digunakan full-stack**: UI dan API webhook berada dalam satu repo.
 2. **API key Gemini tidak boleh dipanggil dari client**. Semua request AI harus lewat server route Next.js.
-3. **Firebase client config boleh berada di client**, tetapi tetap gunakan `.env.local` agar mudah dikelola. Jangan hardcode config dari file `firebase.txt` ke source code.
-4. **Firebase Admin SDK hanya di server** untuk operasi sensitif.
+3. **Supabase publishable key boleh berada di client**, tetapi tetap gunakan `.env.local` agar mudah dikelola.
+4. **Supabase service role key hanya boleh dipakai di server** untuk operasi sensitif.
 5. **Webhook harus diverifikasi** menggunakan secret/token.
 6. **Data tiap UMKM harus dipisahkan berdasarkan `merchantId`** agar aman untuk multi-tenant.
 7. **Pesan WhatsApp/gateway yang belum tersedia tokennya harus dimock dulu** memakai endpoint `/api/mock/inbound`.
@@ -124,19 +124,10 @@ NODE_ENV=development
 GEMINI_API_KEY=isi_dari_google_ai_studio
 GEMINI_MODEL=gemini-2.0-flash
 
-# Firebase Client
-NEXT_PUBLIC_FIREBASE_API_KEY=isi_dari_firebase_txt
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=sipandu-45.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=sipandu-45
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=sipandu-45.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=642616332039
-NEXT_PUBLIC_FIREBASE_APP_ID=isi_dari_firebase_txt
-NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-YSY5EZ97DL
-
-# Firebase Admin SDK
-FIREBASE_PROJECT_ID=sipandu-45
-FIREBASE_CLIENT_EMAIL=isi_service_account_client_email
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+SUPABASE_SERVICE_ROLE_KEY=optional_untuk_server_writes_produksi
 
 # Chat / WhatsApp Gateway
 CHAT_WEBHOOK_SECRET=buat_secret_random_min_32_char
@@ -186,8 +177,9 @@ sipandu/
 │  │  ├─ dashboard/
 │  │  └─ forms/
 │  ├─ lib/
-│  │  ├─ firebase/client.ts
-│  │  ├─ firebase/admin.ts
+│  │  ├─ supabase/client.ts
+│  │  ├─ supabase/server.ts
+│  │  ├─ supabase/seed.ts
 │  │  ├─ gemini/client.ts
 │  │  ├─ openclaw/client.ts
 │  │  ├─ chat/processor.ts
@@ -211,9 +203,9 @@ sipandu/
 
 ---
 
-## 7. Data Model Firestore
+## 7. Data Model Supabase
 
-Gunakan format collection berikut.
+Gunakan tabel Supabase Postgres berikut. SQL final ada di `supabase/schema.sql`.
 
 ### `users/{userId}`
 
@@ -392,7 +384,7 @@ Flow:
 
 1. Validasi secret.
 2. Validasi body dengan Zod.
-3. Ambil data merchant + produk aktif dari Firestore.
+3. Ambil data merchant + produk aktif dari Supabase.
 4. Simpan inbound message.
 5. Panggil `processIncomingChat()`.
 6. Dapatkan intent, reply text, dan order draft jika ada.
@@ -455,7 +447,7 @@ Request:
 Tugas route:
 
 1. Verifikasi bearer token.
-2. Simpan event ke Firestore collection `openclawEvents`.
+2. Simpan event ke tabel Supabase `openclaw_events`.
 3. Jika perlu, panggil OpenClaw Gateway route `/plugins/webhooks/sipandu`.
 4. Return status.
 
@@ -641,7 +633,7 @@ Konten:
 
 ### Login `/login`
 
-- Login email/password Firebase Auth.
+- Login email/password Supabase Auth.
 - Redirect berdasarkan role.
 
 ### Dashboard `/dashboard`
@@ -693,7 +685,7 @@ Pelanggan kirim pesan
 → WhatsApp/gateway/mock webhook
 → POST /api/chat/inbound
 → validasi secret
-→ ambil merchant dan produk dari Firestore
+→ ambil merchant dan produk dari Supabase
 → simpan inbound message
 → Gemini klasifikasi intent + generate reply + ekstrak order
 → simpan order jika ada
@@ -719,7 +711,7 @@ Admin login
 
 ```txt
 Scheduler/manual admin
-→ hitung data harian Firestore
+→ hitung data harian Supabase
 → simpan analyticsDaily
 → kirim event daily_report ke OpenClaw
 → OpenClaw membuat ringkasan laporan untuk admin
@@ -727,48 +719,15 @@ Scheduler/manual admin
 
 ---
 
-## 13. Firestore Security Rules Draft
+## 13. Supabase SQL & RLS Draft
 
-Catatan: rules final harus disesuaikan setelah struktur auth fix.
+Skema MVP ada di `supabase/schema.sql`. Untuk demo lokal, RLS dimatikan agar seed dan webhook bisa berjalan dengan publishable key.
 
-```txt
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isSignedIn() {
-      return request.auth != null;
-    }
+Sebelum produksi publik:
 
-    function isSuperAdmin() {
-      return isSignedIn() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
-    }
-
-    function userMerchantId() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.merchantId;
-    }
-
-    match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow write: if isSuperAdmin();
-    }
-
-    match /merchants/{merchantId} {
-      allow read: if isSignedIn() && (isSuperAdmin() || userMerchantId() == merchantId);
-      allow write: if isSignedIn() && (isSuperAdmin() || userMerchantId() == merchantId);
-
-      match /{subcollection}/{docId} {
-        allow read, write: if isSignedIn() && (isSuperAdmin() || userMerchantId() == merchantId);
-      }
-    }
-
-    match /analyticsDaily/{docId} {
-      allow read: if isSignedIn();
-      allow write: if isSuperAdmin();
-    }
-  }
-}
-```
+1. Isi `SUPABASE_SERVICE_ROLE_KEY` hanya di server/Vercel.
+2. Aktifkan RLS untuk tabel `merchants`, `products`, `chats`, `messages`, `orders`, `analytics_daily`, dan `openclaw_events`.
+3. Buat policy berbasis `merchant_id` dan role user agar data antar UMKM tidak tercampur.
 
 ---
 
@@ -790,7 +749,7 @@ cd sipandu
 ### 2. Install dependency
 
 ```bash
-npm install firebase firebase-admin @google/genai zod uuid clsx tailwind-merge lucide-react
+npm install @supabase/supabase-js @google/genai zod uuid clsx tailwind-merge lucide-react
 npm install -D vitest @types/node
 ```
 
@@ -845,18 +804,18 @@ Deliverable:
 
 ---
 
-### Tahap 1 — Firebase Foundation
+### Tahap 1 — Supabase Foundation
 
 Estimasi: 1 hari
 
 Checklist:
 
-- [ ] Buat `src/lib/firebase/client.ts`.
-- [ ] Buat `src/lib/firebase/admin.ts`.
-- [ ] Setup Firebase Auth login.
-- [ ] Setup Firestore helper.
+- [ ] Buat `src/lib/supabase/client.ts`.
+- [ ] Buat `src/lib/supabase/server.ts`.
+- [ ] Setup Supabase Auth login.
+- [ ] Setup Supabase helper.
 - [ ] Buat seed data demo merchant.
-- [ ] Buat rules draft.
+- [ ] Buat SQL schema dan RLS draft.
 
 Deliverable:
 
@@ -917,7 +876,7 @@ Checklist:
 
 Deliverable:
 
-- Chat mock dapat diproses end-to-end dan masuk Firestore.
+- Chat mock dapat diproses end-to-end dan masuk Supabase.
 
 ---
 
@@ -954,7 +913,7 @@ Checklist:
 
 Deliverable:
 
-- Dashboard analytics membaca data dari Firestore.
+- Dashboard analytics membaca data dari Supabase.
 
 ---
 
@@ -983,11 +942,11 @@ MVP dianggap selesai jika:
 
 1. Developer baru bisa menjalankan project dari README tanpa bertanya konfigurasi dasar.
 2. Landing page tampil dengan branding siPandu.
-3. Login Firebase berfungsi.
+3. Login Supabase berfungsi.
 4. Merchant dan produk bisa dibuat/diedit/dihapus.
 5. Endpoint mock inbound bisa menerima pesan pelanggan.
 6. Gemini menghasilkan respons sesuai katalog produk.
-7. Pesanan sederhana bisa diekstrak dan tersimpan ke Firestore.
+7. Pesanan sederhana bisa diekstrak dan tersimpan ke Supabase.
 8. Riwayat chat inbound/outbound tersimpan.
 9. Dashboard menampilkan chat dan order.
 10. OpenClaw bridge bisa menerima atau mengirim event menggunakan secret.
@@ -1058,7 +1017,7 @@ Expected result:
 Urutan kerja yang paling aman:
 
 1. Setup project Next.js.
-2. Setup Firebase client/admin.
+2. Setup Supabase client/admin.
 3. Seed merchant dan produk demo.
 4. Buat dashboard CRUD produk.
 5. Buat Gemini processor.
@@ -1083,7 +1042,7 @@ Input produk UMKM → pelanggan kirim chat mock → AI menjawab → order tercat
 Aturan penting:
 
 1. Gunakan TypeScript di semua file.
-2. Gunakan server route untuk semua operasi Gemini dan Firebase Admin.
+2. Gunakan server route untuk semua operasi Gemini dan Supabase Admin.
 3. Jangan hardcode secret.
 4. Semua route POST harus validasi Zod.
 5. Buat kode modular agar WhatsApp provider bisa diganti.
@@ -1097,7 +1056,7 @@ Aturan penting:
 
 - Next.js Route Handlers: gunakan route handler di folder `app` untuk endpoint API.
 - Gemini API Quickstart: gunakan SDK `@google/genai` untuk Node.js.
-- Firebase Cloud Firestore: gunakan Firestore sebagai database dokumen.
+- Supabase Postgres: gunakan tabel SQL sebagai database aplikasi.
 - OpenClaw Webhooks Plugin: gunakan route webhook terautentikasi dengan secret environment.
 
 ---
@@ -1108,10 +1067,10 @@ Project siap diserahkan jika folder project memiliki:
 
 - [ ] Source code Next.js lengkap.
 - [x] `.env.example` lengkap.
-- [ ] Firebase client/admin setup.
+- [ ] Supabase client/admin setup.
 - [ ] Gemini client setup.
 - [x] OpenClaw bridge setup.
-- [ ] Firestore data model diterapkan.
+- [ ] Supabase data model diterapkan.
 - [ ] Dashboard berfungsi.
 - [x] Mock chat end-to-end berfungsi.
 - [x] README instalasi.

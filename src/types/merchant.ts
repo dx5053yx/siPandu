@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from './timestamp';
 
 export type MerchantCategory = 'kuliner' | 'fashion' | 'jasa' | 'lainnya';
 export type MerchantStatus = 'draft' | 'active' | 'suspended';

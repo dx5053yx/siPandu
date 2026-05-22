@@ -3,7 +3,7 @@ import { geminiRespondSchema } from '@/lib/validators';
 import { callGemini, isGeminiAvailable } from '@/lib/gemini/client';
 import { buildFullPrompt, FALLBACK_RESPONSE } from '@/lib/chat/prompts';
 import { geminiOutputSchema } from '@/lib/validators';
-import { demoMerchant, demoProducts } from '@/lib/firebase/seed';
+import { demoMerchant, demoProducts } from '@/lib/demo/data';
 import type { Merchant } from '@/types/merchant';
 import type { Product } from '@/types/product';
 
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    // For MVP, use demo data. In production, fetch from Firestore.
+    // For MVP, use demo data. The chat processor fetches live merchant data from Supabase.
     const merchant = demoMerchant as unknown as Merchant;
     const products = demoProducts as unknown as Product[];
 

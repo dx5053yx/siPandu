@@ -4,8 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Bot, LogIn, Eye, EyeOff } from 'lucide-react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { supabase } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,24 +21,42 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (isRegister) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
+      const result = isRegister
+        ? await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signInWithPassword({ email, password });
+
+      if (result.error) {
+        throw result.error;
       }
+
+      if (isRegister) {
+        setError('Akun dibuat. Cek email jika Supabase meminta konfirmasi, lalu masuk kembali.');
+        return;
+      }
+
       router.push('/dashboard');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Terjadi kesalahan';
-      if (message.includes('auth/invalid-credential') || message.includes('auth/wrong-password')) {
+      const normalizedMessage = message.toLowerCase();
+
+      if (
+        normalizedMessage.includes('invalid login credentials') ||
+        normalizedMessage.includes('invalid credentials')
+      ) {
         setError('Email atau password salah.');
-      } else if (message.includes('auth/user-not-found')) {
+      } else if (normalizedMessage.includes('email not confirmed')) {
+        setError('Email belum dikonfirmasi. Cek inbox email kamu dulu.');
+      } else if (normalizedMessage.includes('user not found')) {
         setError('Akun tidak ditemukan. Silakan daftar dulu.');
-      } else if (message.includes('auth/email-already-in-use')) {
+      } else if (
+        normalizedMessage.includes('already registered') ||
+        normalizedMessage.includes('user already registered')
+      ) {
         setError('Email sudah terdaftar. Silakan login.');
-      } else if (message.includes('auth/weak-password')) {
+      } else if (normalizedMessage.includes('password')) {
         setError('Password minimal 6 karakter.');
-      } else if (message.includes('auth/invalid-api-key') || message.includes('auth/api-key-not-valid')) {
-        setError('Firebase belum dikonfigurasi. Silakan isi .env.local dengan API key Firebase.');
+      } else if (normalizedMessage.includes('supabase') || normalizedMessage.includes('url is required')) {
+        setError('Supabase belum dikonfigurasi. Silakan isi .env.local dengan URL dan publishable key Supabase.');
       } else {
         setError(message);
       }

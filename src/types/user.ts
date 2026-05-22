@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from './timestamp';
 
 export type UserRole = 'super_admin' | 'merchant_owner' | 'staff';
 

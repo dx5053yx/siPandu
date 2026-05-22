@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ruleBasedResponse } from '../src/lib/chat/processor';
-import { demoMerchant, demoProducts } from '../src/lib/firebase/seed';
+import { demoMerchant, demoProducts } from '../src/lib/demo/data';
 
 describe('ruleBasedResponse', () => {
   it('returns a product menu from demo products', () => {

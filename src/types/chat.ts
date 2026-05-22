@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from './timestamp';
 
 export type ChatChannel = 'whatsapp' | 'mock' | 'openclaw';
 export type ChatIntent = 'tanya_produk' | 'pesan' | 'komplain' | 'lokasi' | 'jam_buka' | 'lainnya';
