@@ -84,6 +84,14 @@ npm test
 npm run build
 ```
 
+Atau satu perintah:
+
+```bash
+npm run deploy:check
+```
+
+Untuk deploy, lihat [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
 ## Struktur Folder
 
 ```
@@ -134,9 +142,9 @@ src/
 
 ## Demo Data
 
-Merchant demo: **Warung Mendoan Bu Sari** (`demo_warung_mendoan`)
+Merchant demo sementara: **Warung Mendoan Bu Sari** (`demo_warung_mendoan`)
 
-Nomor WhatsApp demo: **08997595299** (`628997595299`)
+Nomor WhatsApp UMKM: **08997595299** (`628997595299`)
 
 | Produk | Harga | Stok |
 |---|---|---|

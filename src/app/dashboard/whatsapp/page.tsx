@@ -35,7 +35,7 @@ const defaultState: WaQrResponse = {
   connected: false,
   status: 'not_configured',
   number: '628997595299',
-  sessionId: 'sipandu-628997595299',
+  sessionId: 'default',
   qrDataUrl: null,
   message: 'Memuat koneksi WhatsApp.',
   inboundWebhookUrl: 'http://localhost:3000/api/chat/inbound',

@@ -2,12 +2,16 @@
   "name": "sipandu",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "deploy:check": "npm test && npm run build",
     "seed": "tsx src/lib/firebase/seed.ts"
   },
   "dependencies": {

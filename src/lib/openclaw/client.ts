@@ -92,7 +92,7 @@ export async function triggerOpenClawEvent(event: OpenClawEventInput): Promise<b
 }
 
 function resolveGatewayUrl(path: string): string {
-  const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:7331';
+  const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:18789';
   return `${gatewayUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
